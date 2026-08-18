@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rachel为你星座分析 · 每日星座运势</title>
+<style>
+  :root{
+    --pink1:#ffe3f0; --pink2:#ffc9e3; --pink:#ff6fa5;
+    --purple:#a78bfa; --purple-deep:#7c6bd1;
+    --blue:#8ecbff; --mint:#a8f0d0; --yellow:#ffd977;
+    --peach:#ffb37a; --red:#ff6b8b;
+    --text:#6b4a8f; --text-soft:#9a7fc2; --text-mute:#b79cd8;
+    --card:rgba(255,255,255,.82); --card-border:rgba(255,255,255,.95);
+    --shadow:0 10px 30px rgba(180,120,200,.18);
+    --radius:26px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC","Comic Sans MS",sans-serif;
+    background:linear-gradient(160deg,#ffe9f4 0%,#f3e8ff 35%,#e6f0ff 68%,#fff0e6 100%);
+    background-attachment:fixed;color:var(--text);min-height:100vh;line-height:1.75;overflow-x:hidden;
+  }
+  ::selection{background:rgba(255,111,165,.3)}
+  /* ===== 漂浮装饰背景 ===== */
+  #deco{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .bubble{position:absolute;border-radius:50%;opacity:.5;animation:rise linear infinite}
+  @keyframes rise{
+    0%{transform:translateY(110vh) scale(.8);opacity:0}
+    10%{opacity:.55}
+    90%{opacity:.55}
+    100%{transform:translateY(-12vh) scale(1.15);opacity:0}
+  }
+  .cloud{position:absolute;font-size:60px;opacity:.35;animation:drift 26s ease-in-out infinite alternate;filter:drop-shadow(0 6px 12px rgba(167,139,250,.25))}
+  @keyframes drift{from{transform:translateX(-30px)}to{transform:translateX(30px)}}
+  .floater{position:absolute;animation:floaty 5s ease-in-out infinite;opacity:.85}
+  @keyframes floaty{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-16px) rotate(6deg)}}
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 18px 80px}
+  /* ===== 顶部标题 ===== */
+  header{text-align:center;padding:56px 0 24px;position:relative}
+  .hero-badge{
+    display:inline-flex;align-items:center;gap:6px;background:var(--card);border:2px solid #fff;
+    border-radius:999px;padding:6px 18px;font-size:13px;color:var(--purple);font-weight:700;
+    letter-spacing:1px;box-shadow:var(--shadow);margin-bottom:16px;
+  }
+  h1{
+    font-size:clamp(34px,6vw,60px);font-weight:900;letter-spacing:3px;line-height:1.25;
+    background:linear-gradient(120deg,#ff6fa5,#a78bfa 55%,#ff9d6b);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 4px 0 #fff);
+    animation:bounce-soft 3.2s ease-in-out infinite;
+  }
+  @keyframes bounce-soft{0%,100%{transform:translateY(0) rotate(-.6deg)}50%{transform:translateY(-8px) rotate(.6deg)}}
+  header p.sub{color:var(--text-soft);font-size:15px;margin-top:10px;letter-spacing:1px}
+  header p.sub b{color:var(--pink)}
+  /* ===== 生日测星座 ===== */
+  .finder{
+    margin:24px auto 8px;max-width:760px;background:var(--card);border:2px solid #fff;
+    border-radius:30px;padding:22px 24px;box-shadow:var(--shadow);
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px;
+  }
+  .finder label{font-size:14px;color:var(--text);font-weight:700;letter-spacing:1px}
+  .finder input[type=date]{
+    background:#fff;border:2px solid #f3d9ec;color:var(--text);border-radius:14px;
+    padding:9px 14px;font-size:15px;font-family:inherit;outline:none;cursor:pointer;
+    transition:border-color .2s;
+  }
+  .finder input[type=date]:focus{border-color:var(--pink)}
+  .finder input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer}
+  .btn{
+    border:none;cursor:pointer;font-family:inherit;font-size:15px;font-weight:800;color:#fff;
+    background:linear-gradient(120deg,#ff8fb5,#a78bfa);border-radius:999px;padding:11px 28px;
+    transition:transform .15s,box-shadow .15s;box-shadow:0 6px 0 #d97ba0,0 10px 22px rgba(255,120,170,.4);
+  }
+  .btn:hover{transform:translateY(-2px)}
+  .btn:active{transform:translateY(4px);box-shadow:0 2px 0 #d97ba0}
+  .finder-result{margin-top:12px;width:100%;text-align:center;font-size:15px;color:var(--text);min-height:26px}
+  .finder-result b{color:var(--pink);font-size:17px}
+  /* ===== 区块标题 ===== */
+  section.block{margin-top:44px}
+  .sec-title{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .sec-title .emoji{font-size:30px;animation:floaty 3.6s ease-in-out infinite;display:inline-block}
+  .sec-title h2{font-size:24px;letter-spacing:2px;color:var(--text)}
+  .sec-title span{font-size:13px;color:var(--text-mute);margin-left:auto;letter-spacing:1px}
+  /* ===== 星座宫格 ===== */
+  .signs-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+  @media(max-width:900px){.signs-grid{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:520px){.signs-grid{grid-template-columns:repeat(2,1fr)}}
+  .sign-card{
+    position:relative;background:var(--card);border:2px solid #fff;border-radius:22px;
+    padding:18px 10px 16px;text-align:center;cursor:pointer;box-shadow:var(--shadow);
+    transition:transform .2s,box-shadow .2s;user-select:none;overflow:hidden;
+  }
+  .sign-card::after{content:"";position:absolute;top:-30px;right:-30px;width:70px;height:70px;border-radius:50%;background:color-mix(in srgb,var(--c) 22%,transparent)}
+  .sign-card:hover{transform:translateY(-6px) rotate(1.2deg);box-shadow:0 16px 34px rgba(180,120,200,.3)}
+  .sign-card.active{box-shadow:0 0 0 3px var(--c),0 14px 30px rgba(180,120,200,.3)}
+  .sign-card .sym{font-size:36px;line-height:1.1;display:block;color:var(--c);filter:drop-shadow(0 3px 6px rgba(0,0,0,.08))}
+  .sign-card .nm{font-weight:800;font-size:16px;margin-top:6px;letter-spacing:1px;color:var(--text)}
+  .sign-card .dt{font-size:11px;color:var(--text-mute);margin-top:3px}
+  .sign-card .sc{margin-top:8px;display:inline-block;font-size:11px;font-weight:700;color:#fff;background:var(--c);border-radius:999px;padding:2px 12px;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+  /* ===== 排行榜 ===== */
+  .rank-box{background:var(--card);border:2px solid #fff;border-radius:30px;padding:22px 24px;box-shadow:var(--shadow)}
+  .rank-row{display:grid;grid-template-columns:40px 46px 1fr auto;align-items:center;gap:12px;padding:9px 10px;border-radius:16px;transition:background .2s;cursor:pointer}
+  .rank-row:hover{background:rgba(167,139,250,.1)}
+  .rank-row .no{font-weight:900;font-size:20px;text-align:center;font-style:italic;color:var(--text-mute)}
+  .rank-row .no.t1{color:var(--pink);text-shadow:0 2px 0 #fff}
+  .rank-row .no.t2{color:var(--purple)} .rank-row .no.t3{color:var(--peach)}
+  .rank-row .rsym{font-size:24px;text-align:center;color:var(--c)}
+  .rank-row .rname{font-weight:800;font-size:15px;color:var(--text)}
+  .rank-row .rscore{font-size:12px;color:var(--text-mute)}
+  .rank-meters{display:flex;align-items:center;gap:10px}
+  .rank-meters .track{width:150px;height:10px;background:#f3e8ff;border-radius:99px;overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,.06)}
+  .rank-meters .fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--c),color-mix(in srgb,var(--c) 55%,#fff))}
+  .rank-meters .star-i{color:var(--yellow);text-shadow:0 0 6px rgba(255,217,119,.7)}
+  @media(max-width:640px){.rank-meters .track{width:80px}.rank-row{grid-template-columns:32px 40px 1fr auto}}
+  /* ===== 详情区 ===== */
+  #detail{scroll-margin-top:20px}
+  .detail-hero{
+    background:linear-gradient(135deg,#fff,color-mix(in srgb,var(--c) 9%,#fff));
+    border:3px solid #fff;border-radius:32px;padding:34px 30px;margin-top:44px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .detail-hero::before{content:"";position:absolute;top:-70px;right:-70px;width:240px;height:240px;border-radius:50%;background:color-mix(in srgb,var(--c) 16%,transparent)}
+  .detail-hero::after{content:"";position:absolute;bottom:-50px;left:-50px;width:160px;height:160px;border-radius:50%;background:rgba(255,217,119,.18)}
+  .d-top{display:flex;align-items:center;gap:22px;flex-wrap:wrap;position:relative;z-index:1}
+  .d-sym{font-size:88px;line-height:1;color:var(--c);filter:drop-shadow(0 8px 14px rgba(0,0,0,.12));animation:bounce-soft 4s ease-in-out infinite}
+  .d-info h2{font-size:36px;letter-spacing:3px;color:var(--text)}
+  .d-info .en{color:var(--text-mute);letter-spacing:2px;font-size:14px}
+  .d-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .d-tags span{font-size:12px;font-weight:700;padding:4px 13px;border-radius:999px;background:#fff;border:2px solid color-mix(in srgb,var(--c) 35%,#fff);color:var(--text);box-shadow:0 3px 8px rgba(0,0,0,.05)}
+  .d-tags span b{color:var(--pink);font-weight:800}
+  .d-date{margin-left:auto;text-align:right;font-size:13px;color:var(--text-mute)}
+  .d-date b{display:block;font-size:18px;color:var(--pink);letter-spacing:1px}
+  /* ===== Tabs ===== */
+  .tabs{display:flex;flex-wrap:wrap;gap:9px;margin-top:24px;position:relative;z-index:1}
+  .tab{
+    border:2px solid #f3d9ec;background:#fff;color:var(--text-soft);border-radius:999px;
+    padding:8px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;
+    transition:all .2s;letter-spacing:1px;box-shadow:0 4px 12px rgba(180,120,200,.12);
+  }
+  .tab:hover{transform:translateY(-2px)}
+  .tab.on{background:linear-gradient(120deg,#ff8fb5,#a78bfa);color:#fff;border-color:transparent;box-shadow:0 6px 0 #c88bb0,0 10px 20px rgba(255,120,170,.35)}
+  .tabpane{display:none;animation:fadeUp .45s ease}
+  .tabpane.on{display:block}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  .pane-body{margin-top:22px}
+  /* ===== 运势卡片 ===== */
+  .fort-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+  .fort-card{background:#fff;border:2px solid #fff;border-radius:20px;padding:16px 14px 14px;text-align:center;box-shadow:0 8px 22px rgba(180,120,200,.14);position:relative;overflow:hidden}
+  .fort-card::before{content:"";position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--c),color-mix(in srgb,var(--c) 55%,#fff))}
+  .fort-card .lab{font-size:13px;color:var(--text-mute);letter-spacing:2px;font-weight:700}
+  .fort-card .val{font-size:27px;font-weight:900;margin:4px 0 2px;color:var(--c)}
+  .fort-card .stars{color:var(--yellow);font-size:15px;letter-spacing:2px;text-shadow:0 0 6px rgba(255,217,119,.8)}
+  .fort-card .score{font-size:12px;color:var(--text-mute)}
+  .today-text{background:#fff;border:2px solid #fff;border-radius:22px;padding:22px 24px;margin-top:16px;font-size:15px;color:var(--text);line-height:2.1;box-shadow:0 8px 22px rgba(180,120,200,.14)}
+  .today-text .lead{color:var(--pink);font-weight:800}
+  .today-text .tag{display:inline-block;font-size:12px;font-weight:700;color:#fff;background:var(--c);border-radius:8px;padding:1px 10px;margin-right:6px}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  @media(max-width:680px){.two-col{grid-template-columns:1fr}}
+  .yi-ji{background:#fff;border:2px solid #fff;border-radius:22px;padding:18px 22px;box-shadow:0 8px 22px rgba(180,120,200,.14)}
+  .yi-ji h4{font-size:15px;letter-spacing:2px;margin-bottom:10px;display:flex;align-items:center;gap:8px;color:var(--text)}
+  .yi-ji ul{list-style:none}
+  .yi-ji li{font-size:14px;color:var(--text);padding:5px 0;line-height:1.9}
+  .yi-ji .yes b{color:var(--mint);text-shadow:0 0 8px rgba(168,240,208,.6)}
+  .yi-ji .no b{color:var(--pink)}
+  .luck-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:16px}
+  .luck-item{background:#fff;border:2px solid #fff;border-radius:18px;padding:13px 14px;text-align:center;box-shadow:0 8px 22px rgba(180,120,200,.12)}
+  .luck-item .k{font-size:12px;color:var(--text-mute);font-weight:700}
+  .luck-item .v{font-size:19px;font-weight:900;margin-top:3px;color:var(--text)}
+  .luck-item .v small{font-size:12px;font-weight:400;color:var(--text-mute)}
+  /* ===== 周期运势 ===== */
+  .period-text{background:#fff;border:2px solid #fff;border-radius:22px;padding:22px 24px;font-size:15px;color:var(--text);line-height:2.1;box-shadow:0 8px 22px rgba(180,120,200,.14)}
+  .period-text b{color:var(--pink)}
+  .period-tips{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .tip-box{background:#fff;border:2px solid #fff;border-radius:18px;padding:14px 16px;box-shadow:0 8px 22px rgba(180,120,200,.12)}
+  .tip-box .t{font-size:12px;color:var(--text-mute);letter-spacing:2px;font-weight:700}
+  .tip-box .d{font-size:14px;margin-top:5px;color:var(--text)}
+  /* ===== 档案 ===== */
+  .profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:680px){.profile-grid{grid-template-columns:1fr}}
+  .profile-card{background:#fff;border:2px solid #fff;border-radius:22px;padding:20px 22px;box-shadow:0 8px 22px rgba(180,120,200,.14)}
+  .profile-card h4{font-size:16px;margin-bottom:10px;color:var(--text);display:flex;align-items:center;gap:8px}
+  .profile-card p,.profile-card li{font-size:14px;color:var(--text);line-height:2.05}
+  .profile-card ul{list-style:none}
+  .profile-card li{padding-left:20px;position:relative}
+  .profile-card li::before{content:"💗";position:absolute;left:0;top:3px;font-size:11px}
+  .info-table{width:100%;border-collapse:collapse;margin-top:8px}
+  .info-table td{padding:9px 6px;font-size:14px;border-bottom:1px dashed #ecd9f0}
+  .info-table td:first-child{color:var(--text-mute);width:110px;font-weight:700}
+  .info-table td:last-child{color:var(--text)}
+  .info-table td b{color:var(--pink)}
+  /* ===== 配对 ===== */
+  .comp-intro{display:flex;align-items:center;gap:14px;background:#fff;border:2px solid #fff;border-radius:20px;padding:16px 20px;margin-bottom:16px;flex-wrap:wrap;box-shadow:0 8px 22px rgba(180,120,200,.14)}
+  .comp-intro .hs{font-size:36px;color:var(--c)}
+  .comp-intro .heart{color:var(--pink);font-size:24px;animation:beat 1.1s ease-in-out infinite;display:inline-block}
+  @keyframes beat{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+  .comp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:12px}
+  .comp-item{background:#fff;border:2px solid #fff;border-radius:20px;padding:14px 16px;cursor:pointer;transition:transform .18s,border-color .18s;box-shadow:0 8px 22px rgba(180,120,200,.12)}
+  .comp-item:hover{transform:translateY(-4px) rotate(-.5deg);border-color:var(--c2,var(--c))}
+  .comp-item .top{display:flex;align-items:center;gap:10px}
+  .comp-item .cs{font-size:28px;color:var(--c2,var(--c));filter:drop-shadow(0 3px 5px rgba(0,0,0,.08))}
+  .comp-item .cn{font-weight:800;font-size:15px;color:var(--text)}
+  .comp-item .cp{font-size:12px;color:var(--text-mute)}
+  .comp-item .pct{margin-left:auto;font-weight:900;font-size:20px;color:var(--c2,var(--c))}
+  .comp-item .track{height:9px;background:#f3e8ff;border-radius:99px;overflow:hidden;margin-top:9px;box-shadow:inset 0 1px 3px rgba(0,0,0,.05)}
+  .comp-item .fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--c2,var(--c)),color-mix(in srgb,var(--c2,var(--c)) 50%,#fff))}
+  .best-pick{display:flex;gap:14px;flex-wrap:wrap;align-items:center;background:linear-gradient(120deg,#fff5d9,#ffe9f3);border:2px solid #fff;border-radius:20px;padding:14px 18px;margin-top:16px;font-size:14px;color:var(--text);box-shadow:0 8px 22px rgba(180,120,200,.14)}
+  .best-pick b{color:var(--pink)}
+  /* ===== 每日签文 ===== */
+  .fortune-tip{margin-top:44px;text-align:center}
+  .card-draw{
+    display:inline-block;background:var(--card);border:3px solid #fff;border-radius:30px;
+    padding:36px 42px;max-width:580px;box-shadow:var(--shadow);position:relative;
+  }
+  .card-draw .moon{font-size:50px;animation:bounce-soft 3.4s ease-in-out infinite;display:block}
+  .card-draw h3{font-size:21px;letter-spacing:3px;margin:8px 0 4px;color:var(--pink)}
+  .card-draw p{color:var(--text);font-size:15px;line-height:2.1;margin-top:8px}
+  .card-draw .chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:14px}
+  .card-draw .chips span{font-size:12px;font-weight:700;background:#fff;border:2px solid #f3d9ec;border-radius:999px;padding:3px 14px;color:var(--purple)}
+  .draw-btn{margin-top:18px}
+  /* ===== 免责声明/页脚 ===== */
+  .disclaimer{
+    margin-top:56px;padding:18px 22px;border-radius:22px;background:rgba(255,255,255,.6);
+    border:2px dashed var(--pink2);font-size:12px;color:var(--text-mute);text-align:center;line-height:2;
+  }
+  footer{text-align:center;color:var(--text-mute);font-size:13px;padding:30px 0 10px;letter-spacing:1px}
+  footer .heart{color:var(--pink);animation:beat 1.2s ease-in-out infinite;display:inline-block}
+  /* 滚动条 */
+  ::-webkit-scrollbar{width:10px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:linear-gradient(#ffb3cf,#c3b3f5);border-radius:99px}
+</style>
+</head>
+<body>
+<!-- 漂浮装饰背景 -->
+<div id="deco"></div>
+
+<div class="wrap">
+  <!-- ============ 顶部标题 ============ -->
+  <header>
+    <div class="hero-badge">🌟 欢迎来到 Rachel 的星光小屋 🌟</div>
+    <h1>Rachel 为你星座分析</h1>
+    <p class="sub">✨ 每日 · 每周 · 每月运势 &nbsp;|&nbsp; 星座配对 &nbsp;|&nbsp; 性格档案 &nbsp;|&nbsp; 幸运指南 💖</p>
+  </header>
+
+  <!-- ============ 生日测星座 ============ -->
+  <div class="finder">
+    <label>🎂 输入你的生日，测测属于你的星座：</label>
+    <input type="date" id="birthInput" max="2026-12-31" min="1900-01-01">
+    <button class="btn" id="findBtn">🔮 开始测算</button>
+    <div class="finder-result" id="finderResult"></div>
+  </div>
+
+  <!-- ============ 十二星座宫格 ============ -->
+  <section class="block" id="signsSection">
+    <div class="sec-title">
+      <span class="emoji">🌈</span>
+      <h2>十二星座</h2>
+      <span>点击卡片查看详细运势 💕</span>
+    </div>
+    <div class="signs-grid" id="signsGrid"></div>
+  </section>
+
+  <!-- ============ 今日运势排行 ============ -->
+  <section class="block">
+    <div class="sec-title">
+      <span class="emoji">🏆</span>
+      <h2>今日星座运势排行榜</h2>
+      <span id="rankDate"></span>
+    </div>
+    <div class="rank-box" id="rankBox"></div>
+  </section>
+
+  <!-- ============ 详情主区 ============ -->
+  <section class="block" id="detail">
+    <div class="detail-hero" id="detailHero"></div>
+
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-tab="today">☀️ 今日运势</button>
+      <button class="tab" data-tab="week">📅 本周运势</button>
+      <button class="tab" data-tab="month">🌙 本月运势</button>
+      <button class="tab" data-tab="profile">📖 星座档案</button>
+      <button class="tab" data-tab="comp">💞 星座配对</button>
+    </div>
+
+    <div class="tabpane on" id="pane-today">
+      <div class="pane-body">
+        <div class="fort-grid" id="todayGrid"></div>
+        <div class="today-text" id="todayText"></div>
+        <div class="two-col">
+          <div class="yi-ji yes"><h4>✅ 今日宜</h4><ul id="todayYi"></ul></div>
+          <div class="yi-ji no"><h4>🚫 今日忌</h4><ul id="todayJi"></ul></div>
+        </div>
+        <div class="luck-strip" id="luckStrip"></div>
+      </div>
+    </div>
+
+    <div class="tabpane" id="pane-week">
+      <div class="pane-body">
+        <div class="period-text" id="weekText"></div>
+        <div class="period-tips" id="weekTips"></div>
+      </div>
+    </div>
+
+    <div class="tabpane" id="pane-month">
+      <div class="pane-body">
+        <div class="period-text" id="monthText"></div>
+        <div class="period-tips" id="monthTips"></div>
+      </div>
+    </div>
+
+    <div class="tabpane" id="pane-profile">
+      <div class="pane-body">
+        <div class="profile-grid">
+          <div class="profile-card"><h4>🌟 性格特点</h4><p id="pfPersonality"></p></div>
+          <div class="profile-card"><h4>💪 优点</h4><ul id="pfStrength"></ul></div>
+          <div class="profile-card"><h4>🍂 缺点</h4><ul id="pfWeakness"></ul></div>
+          <div class="profile-card"><h4>❤️ 喜欢的 / 😖 讨厌的</h4>
+            <p id="pfLike"></p><p id="pfDislike" style="margin-top:8px"></p>
+          </div>
+          <div class="profile-card" style="grid-column:1/-1"><h4>📜 星座小档案</h4>
+            <table class="info-table" id="pfInfo"></table>
+          </div>
+          <div class="profile-card" style="grid-column:1/-1"><h4>🦋 星座传说</h4><p id="pfMyth"></p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabpane" id="pane-comp">
+      <div class="pane-body">
+        <div class="comp-intro" id="compIntro"></div>
+        <div class="comp-grid" id="compGrid"></div>
+        <div class="best-pick" id="bestPick"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 每日签文 ============ -->
+  <section class="fortune-tip">
+    <div class="sec-title" style="justify-content:center;margin-bottom:16px">
+      <span class="emoji">🎴</span>
+      <h2>今日星光签文</h2>
+    </div>
+    <div class="card-draw">
+      <span class="moon">🌙</span>
+      <h3 id="tipTitle">占卜中...</h3>
+      <p id="tipText"></p>
+      <div class="chips" id="tipChips"></div>
+      <button class="btn draw-btn" id="drawBtn">🎲 换一张签</button>
+    </div>
+  </section>
+
+  <!-- ============ 免责声明 ============ -->
+  <div class="disclaimer">
+    💌 温馨提示：星座运势内容由 Rachel 整理编写，仅供娱乐参考，切勿过度依赖。无论星象如何，你的努力与笑容才是最好的运气哦～ ⭐<br>
+    页面内容参考自大众星座文化资料（如第一星座网、星座屋等）的风格与结构，属于趣味性解读。
+  </div>
+
+  <footer>Made with <span class="heart">💗</span> by Rachel · 愿星光常伴你左右 ✨</footer>
+</div>
+
+<script>
+// ============================================================
+//  十二星座数据 —— 由 Rachel 精心整理
+// ============================================================
+const SIGNS = [
+  {
+    id:"aries", name:"白羊座", en:"Aries", sym:"♈", c:"#ff6b6b", elem:"火象", modal:"本位",
+    date:"3.21 - 4.19", ruler:"火星", luckNums:[3,9,6], luckColors:["红色","橙色"], luckyFlower:"木槿花",
+    luckyStone:"红玛瑙", luckyDir:"正东方", planet:"火星",
+    short:"热情似火，勇往直前的行动派",
+    personality:"白羊座就像一团永远燃烧的小火苗，行动力爆棚，想到什么就立刻去做。他们性格直率、坦荡，心里藏不住事，开心和不开心全都写在脸上。白羊天生乐观，像个小太阳一样感染身边的人，但偶尔也会因为太冲动而“先斩后奏”，需要一点点耐心和刹车。",
+    strength:["行动力超强，说干就干","乐观开朗，自带正能量","真诚直率，不玩心机","勇敢无畏，敢于挑战","朋友缘超好，讲义气"],
+    weakness:["性子急，容易冲动","三分钟热度，缺乏耐心","说话太直，容易得罪人","好胜心强，不服输","不太会控制情绪"],
+    like:"冒险、运动、新鲜事物、被人夸赞、说走就走的旅行",
+    dislike:"拖拖拉拉、被束缚管束、沉闷无聊的场合、拐弯抹角",
+    myth:"传说白羊座是古希腊神话中金羊毛的故事。英雄伊阿宋率领阿尔戈英雄们远航寻找金羊毛，这只长着金色羊毛、能飞行的神羊，象征着勇气、冒险与开拓。白羊座的守护星火星，正是战神玛尔斯的化身，赋予他们无限的热情与战斗力。",
+    today:"今天适合主动出击！无论是工作上需要推进的项目，还是心里惦记了很久的小心愿，都适合在这一天大胆说出来。虽然过程有点小波折，但结局会是甜的～记得对身边的人多一点耐心。",
+    love:"单身的白羊今天魅力四射，容易在聚会或运动场合遇到心动对象，勇敢打招呼就有故事；有伴的白羊适合制造一点小惊喜，对方会很吃这一套。",
+    career:"事业上干劲十足，适合谈判、提案、争取资源。注意别太急躁，把细节多核对一遍会更稳妥。",
+    wealth:"财运稳中有升，适合开启新的储蓄计划，但网购要三思，警惕冲动消费哦。",
+    health:"精力充沛，适合运动出汗释放压力，注意多喝水、早点睡。"
+  },
+  {
+    id:"taurus", name:"金牛座", en:"Taurus", sym:"♉", c:"#e8a15c", elem:"土象", modal:"固定",
+    date:"4.20 - 5.20", ruler:"金星", luckNums:[6,2,8], luckColors:["绿色","粉色"], luckyFlower:"玫瑰",
+    luckyStone:"绿松石", luckyDir:"正北方", planet:"金星",
+    short:"踏实稳重，温柔又倔强的小吃货",
+    personality:"金牛座是十二星座里最可靠的存在，像一座沉稳的小山，靠谱、耐心、重感情。他们热爱美食、音乐和一切美好的事物，审美在线，品味一流。金牛看起来很慢热，但一旦认定的人和事，就会用最长的耐心去守护，是那种“慢但稳”的人生赢家。",
+    strength:["踏实靠谱，让人安心","耐心十足，能坚持到底","审美品味一流","重感情，忠诚专一","理财能力超强"],
+    weakness:["固执倔强，认死理","慢热且被动","太爱享受，容易吃胖","占有欲有点强","不擅长拒绝"],
+    like:"美食、音乐、舒适的家、稳定安心的生活、毛茸茸的小动物",
+    dislike:"变化和突袭、被人催促、浪费钱、虚情假意",
+    myth:"传说金牛座源自宙斯的一段风流韵事：宙斯为了追求美丽的欧罗巴公主，化身成一头温顺美丽的白色公牛，驮着公主渡过大海来到克里特岛。这头优雅又强大的金牛，象征着坚毅、耐心与对美好的执着追求。",
+    today:"今天是适合稳扎稳打的一天。别被周围人的节奏带跑，按照你自己的步伐走就好。美食和音乐是你的幸运开关，累了就停下来享受一下生活的小确幸～",
+    love:"单身的金牛今天有望通过朋友介绍或日常场合遇到靠谱的对象，别急着下结论，慢慢了解更甜；有伴的金牛适合一起做顿好吃的，感情在烟火气里升温。",
+    career:"工作按部就班但收获踏实，适合处理长期项目、整理账目。你对品质的把控会被领导看在眼里。",
+    wealth:"财运不错，适合理财规划。可能会有小额进账，但也别为了省钱委屈自己，适度犒劳一下很棒。",
+    health:"注意久坐问题，多起来走动。颈椎和眼睛需要休息，吃点温润的食物养护脾胃。"
+  },
+  {
+    id:"gemini", name:"双子座", en:"Gemini", sym:"♊", c:"#ffd93b", elem:"风象", modal:"变动",
+    date:"5.21 - 6.21", ruler:"水星", luckNums:[5,7,3], luckColors:["黄色","天蓝"], luckyFlower:"铃兰",
+    luckyStone:"黄水晶", luckyDir:"西北方", planet:"水星",
+    short:"古灵精怪，永远十八岁的社交小天才",
+    personality:"双子座拥有两颗心、两个灵魂，古灵精怪，聪明伶俐，是朋友圈里的气氛担当。他们好奇心旺盛，什么都能聊上几句，语言天赋一流，机智幽默。双子的世界从不无聊，唯一的问题可能是——他们自己也常常跟不上自己跳脱的思路。",
+    strength:["机智幽默，反应超快","口才一流，社交达人","好奇心强，知识面广","适应力极强","创意点子源源不断"],
+    weakness:["三分钟热度，容易分心","情绪多变，阴晴不定","有时说话不过脑","缺乏耐心和定性","喜欢逃避责任"],
+    like:"聊天八卦、新鲜事物、旅行学习、交朋友、追剧打游戏",
+    dislike:"一成不变、被人束缚、枯燥重复、假正经",
+    myth:"双子座源于宙斯之子卡斯托尔和波吕丢刻斯这对孪生兄弟。哥哥是凡人，弟弟是神，两人情深义重。弟弟为了不让哥哥死去，甘愿分享自己的神性。宙斯被这份手足之情打动，将他们一同升上天空，成为永不分离的双子星座，象征智慧、交流与双重灵魂。",
+    today:"今天你的脑洞格外活跃，灵感像泉水一样往外冒！适合沟通、写作、谈合作。但注意说话之前先过过脑子，别让好奇心带你偏离今天的主要目标哦。",
+    love:"单身的双子今天桃花活跃，聊天中容易擦出火花，但别急着确定关系，再多了解一点；有伴的双子注意别三心二意，专心听对方说话就是最好的浪漫。",
+    career:"沟通运爆棚，适合会议、提案、头脑风暴。你的点子会惊艳全场，记得把想法落实到纸面上。",
+    wealth:"偏财运不错，可能有意外的小惊喜，但投资理财要谨慎，别被花哨的信息迷惑。",
+    health:"注意睡眠和用眼，作息容易乱。多深呼吸放松神经，别让思绪太多消耗能量。"
+  },
+  {
+    id:"cancer", name:"巨蟹座", en:"Cancer", sym:"♋", c:"#b0a0ff", elem:"水象", modal:"本位",
+    date:"6.22 - 7.22", ruler:"月亮", luckNums:[2,7,4], luckColors:["白色","银色"], luckyFlower:"百合",
+    luckyStone:"月光石", luckyDir:"正南方", planet:"月亮",
+    short:"温柔细腻，把家装进心里的小螃蟹",
+    personality:"巨蟹座是十二星座里最柔软也最坚强的一个。他们像月亮一样温柔、细腻、善解人意，家庭观念极重，是朋友和家人眼里最暖心的存在。巨蟹很会照顾人，情绪感知力一流，但也容易因为太在乎而敏感多想，需要一个温暖的拥抱和足够的安全感。",
+    strength:["温柔体贴，共情力强","重情重义，念旧感恩","直觉敏锐，洞察人心","家庭观念强，责任感重","记忆力好，细心周到"],
+    weakness:["敏感多疑，容易胡思乱想","情绪化，容易内耗","缺乏安全感","太念旧，放不下过去","不善于拒绝别人"],
+    like:"家、美食、温馨回忆、小动物、被关心和在乎的感觉",
+    dislike:"被忽视、冷暴力、突然的变动、尖锐的争吵",
+    myth:"传说巨蟹座是天后赫拉派去帮助九头蛇许德拉的巨蟹，它在英雄赫拉克勒斯的战斗中用钳子夹住他的脚。虽然巨蟹最终被击败，但赫拉感念它的忠诚，将它升上天空。这只忠诚又护短的巨蟹，象征着守护、敏感与家的温情。",
+    today:"今天你的直觉格外灵敏，相信自己的第一感觉。适合整理房间、布置小窝、联系家人。别把情绪都憋在心里，找信赖的人聊一聊，心情会晴朗很多。",
+    love:"单身的巨蟹今天容易在熟悉的环境里遇见温暖的人，朋友变恋人的可能性很大；有伴的巨蟹适合和家人一起活动，温馨的氛围会让感情更深。",
+    career:"工作中你的细心和责任感很加分，适合处理需要耐心的事务。注意别把工作情绪带回家。",
+    wealth:"财运平稳，适合做家庭开支规划。人情往来上有支出，但都是值得的温暖投资。",
+    health:"注意情绪管理，别熬夜多想。泡个热水澡、喝杯热牛奶，好好滋养自己。"
+  },
+  {
+    id:"leo", name:"狮子座", en:"Leo", sym:"♌", c:"#ffb03b", elem:"火象", modal:"固定",
+    date:"7.23 - 8.22", ruler:"太阳", luckNums:[1,4,9], luckColors:["金色","橙色"], luckyFlower:"向日葵",
+    luckyStone:"黄玉", luckyDir:"正西方", planet:"太阳",
+    short:"王者气场，光芒万丈的快乐大猫",
+    personality:"狮子座是天生的主角，自带聚光灯体质。他们自信、大方、热情，走到哪里都是人群的焦点。狮子座内心其实住着一只渴望被夸赞的大猫，表面威风凛凛，私下却超级重义气、护朋友。他们慷慨得像小太阳，愿意把光芒和温暖分给所有人。",
+    strength:["自信大方，气场强大","热情慷慨，讲义气","领导力一流，有担当","审美和表现力俱佳","乐观勇敢，王者心态"],
+    weakness:["好面子，听不得批评","自尊心太强，容易傲娇","有时过于强势","花钱大手大脚","受不了被冷落"],
+    like:"被夸赞、舞台和掌声、精致的东西、领导他人、热闹的场合",
+    dislike:"被忽视、当众出丑、小气抠门、被人命令",
+    myth:"传说狮子座是英雄赫拉克勒斯十二项功绩中的第一项——尼米亚巨狮。这头刀枪不入的巨狮危害人间，赫拉克勒斯徒手将其制服，并把狮皮披在身上。宙斯将巨狮升上天空，成为狮子座，象征勇气、尊严与王者之力。",
+    today:"今天是你发光的日子！自信一点，大胆展示自己，机会会主动找上门。适合谈合作、做汇报、发朋友圈。但记得给身边人留点表现空间，收敛一点小傲娇，人缘会更旺。",
+    love:"单身的狮子今天气场全开，容易吸引欣赏你的人，但别太高冷，给对方一个靠近的机会；有伴的狮子多夸夸另一半，你们的感情会像太阳一样炙热。",
+    career:"事业运亮眼，你的领导力和执行力会得到认可，适合承担重要任务。注意团队协作，别太抢戏。",
+    wealth:"财运上行，正财偏财都有机会，但别为面子过度消费，理性剁手。",
+    health:"能量满满，适合运动健身。注意防晒和补水，小心别因为太兴奋而过度劳累。"
+  },
+  {
+    id:"virgo", name:"处女座", en:"Virgo", sym:"♍", c:"#7fd8a0", elem:"土象", modal:"变动",
+    date:"8.23 - 9.22", ruler:"水星", luckNums:[5,8,2], luckColors:["米色","浅绿"], luckyFlower:"紫罗兰",
+    luckyStone:"蓝宝石", luckyDir:"东北方", planet:"水星",
+    short:"追求完美，心思细腻的治愈系学霸",
+    personality:"处女座是十二星座里的“细节控”和“整理大师”。他们追求完美、条理清晰、做事一丝不苟，拥有超强的分析能力和学习能力。处女座表面冷静理智，内心其实温柔细腻，特别擅长照顾别人，是那种嘴上嫌弃、手上却帮你把一切安排妥当的暖心存在。",
+    strength:["追求完美，精益求精","分析能力强，思维缜密","勤奋自律，学习力满分","细心体贴，服务精神强","诚实可靠，责任感重"],
+    weakness:["完美主义，容易焦虑","爱挑剔，标准太高","有点唠叨，容易操心","对自己太苛刻","想太多，容易钻牛角尖"],
+    like:"整洁有序、学习进步、养生健康、被需要的感觉、精致的生活",
+    dislike:"脏乱差、不守时、敷衍了事、虚伪浮夸",
+    myth:"传说处女座与农业女神德墨忒耳的女儿珀耳塞福涅有关。她被冥王掳走，母亲苦苦寻找。珀耳塞福涅手持麦穗，象征丰收与纯洁。处女座因此也被称为“收获女神”，代表细致、纯净与对秩序的守护，是大地最温柔的女儿。",
+    today:"今天适合做计划、整理、复盘。你的细致会帮大忙，但别对自己太苛刻，偶尔的“不完美”也是生活的可爱之处。把标准调低一点，快乐会多很多。",
+    love:"单身的处女座今天容易在学习和工作的圈子里遇到志同道合的人，慢慢来反而更甜；有伴的处女座少一点挑剔，多表达关心，对方会更懂你的温柔。",
+    career:"工作效率超高，适合处理复杂事务、做数据分析和方案打磨。你的专业度会赢得信任。",
+    wealth:"财运平稳，适合精打细算。健康类、学习类支出值得，避免为面子买单。",
+    health:"注意肠胃和作息，别太焦虑。冥想、瑜伽、散步都是很好的减压方式。"
+  },
+  {
+    id:"libra", name:"天秤座", en:"Libra", sym:"♎", c:"#ff9fd0", elem:"风象", modal:"本位",
+    date:"9.23 - 10.23", ruler:"金星", luckNums:[6,4,9], luckColors:["粉色","浅蓝"], luckyFlower:"绣球花",
+    luckyStone:"粉晶", luckyDir:"西南方", planet:"金星",
+    short:"优雅社交家，颜值与情商双在线",
+    personality:"天秤座是十二星座里的颜值担当和和平使者。他们优雅、随和、审美在线，天生自带“高情商光环”，总能让身边的气氛舒服又和谐。天秤座特别在意公平与美，讨厌冲突，擅长平衡各方关系。唯一的纠结在于——他们太会权衡了，常常在“选A还是选B”里迷路。",
+    strength:["优雅大方，魅力十足","情商高，社交能力强","审美品味出众","公正客观，善于协调","温柔和平，人缘爆棚"],
+    weakness:["选择困难症晚期","太在意别人看法","优柔寡断，易摇摆","害怕冲突，委曲求全","有时过于追求表面和谐"],
+    like:"美的事物、穿搭护肤、社交聚会、艺术音乐、平等尊重",
+    dislike:"争吵冲突、不公平、粗鲁没礼貌、被逼着做决定",
+    myth:"传说天秤座是正义女神阿斯特莱亚手中衡量善恶的天秤。她用这把天秤称量人心与命运，维护世间的公平与秩序。后来天秤被升上天空，象征公正、平衡与美，也寄托了人类对和谐与良善的向往。",
+    today:"今天你的魅力值满格，人缘超好，适合社交、聚会、谈合作。但别为了取悦所有人而委屈自己，学会说“不”也是一种优雅。选择困难时，相信直觉就对了。",
+    love:"单身的天秤今天桃花朵朵开，容易在聚会或活动中被搭讪，选对象别只看脸，人品更重要；有伴的天秤注意别太纠结小事，包容多一点，甜蜜多一点。",
+    career:"团队协作运佳，适合沟通协调、主持项目。你的审美和判断力会在创意类工作中发光。",
+    wealth:"财运温和，适合买点提升生活品质的小物，但别被折扣冲昏头脑。",
+    health:"注意皮肤和睡眠，别因为社交太嗨而熬夜。规律作息让好状态常伴。"
+  },
+  {
+    id:"scorpio", name:"天蝎座", en:"Scorpio", sym:"♏", c:"#8a6bff", elem:"水象", modal:"固定",
+    date:"10.24 - 11.22", ruler:"冥王星", luckNums:[8,5,0], luckColors:["深红","黑色"], luckyFlower:"山茶花",
+    luckyStone:"黑曜石", luckyDir:"正西方", planet:"冥王星、火星",
+    short:"神秘深情，爱憎分明的宝藏星座",
+    personality:"天蝎座是十二星座里最有深度的一个。他们神秘、敏锐、洞察力惊人，一眼就能看穿事物的本质。天蝎外冷内热，对信任的人掏心掏肺，对认定的目标全力以赴，深情又专一。他们的世界非黑即白，爱憎分明，是那种“要么不爱，要么深爱”的极致存在。",
+    strength:["洞察力超强，直觉敏锐","意志坚定，不轻易放弃","深情专一，重承诺","神秘有魅力，吸引力强","危机处理能力一流"],
+    weakness:["占有欲强，容易吃醋","记仇，报复心有点强","太过神秘，让人猜不透","情绪强烈，容易走极端","戒备心重，难以信任"],
+    like:"深度交流、神秘事物、掌控感、忠诚的朋友、专注做一件事",
+    dislike:"背叛欺骗、肤浅虚伪、被人试探、轻浮的人",
+    myth:"传说天蝎座与猎户座的恩怨有关。骄傲的猎人俄里翁扬言要猎尽世间猛兽，天后赫拉派巨蝎去对付他。巨蝎用毒针蜇死了俄里翁，两人一同升上天空，却永远一个升起、一个落下，彼此避让。这只神秘的巨蝎，象征力量、复仇与深邃的灵魂。",
+    today:"今天你的直觉像开了天眼，非常适合做重要决定和深度思考。适合处理复杂问题、解决遗留矛盾。别把所有情绪都藏在心里，对信任的人稍微敞开心扉，运气会更好。",
+    love:"单身的天蝎今天容易遇到有神秘气质的人，别太快交出真心，慢慢试探更稳妥；有伴的天蝎今天适合深度谈心，把误会说开，感情会升华。",
+    career:"事业上适合攻坚克难，你的专注力和洞察力能帮你拿下关键项目。注意职场人际，别树敌。",
+    wealth:"财运走高，投资眼光精准，但别太贪心，见好就收。",
+    health:"注意情绪和压力管理，别憋着。运动、泡澡、写日记都是很好的释放方式。"
+  },
+  {
+    id:"sagittarius", name:"射手座", en:"Sagittarius", sym:"♐", c:"#ff8f6b", elem:"火象", modal:"变动",
+    date:"11.23 - 12.21", ruler:"木星", luckNums:[3,7,9], luckColors:["紫色","深蓝"], luckyFlower:"鸢尾花",
+    luckyStone:"紫水晶", luckyDir:"正南方", planet:"木星",
+    short:"自由灵魂，永远在路上的快乐探险家",
+    personality:"射手座是十二星座里最自由洒脱的“风一般的少年”。他们乐观开朗、热爱自由，永远对世界充满好奇，是那种背着包说走就走的旅行家。射手座幽默风趣、直言不讳，像个小哲学家，总能把人逗笑的同时又带来启发。他们的快乐很有感染力，是朋友圈里的小太阳。",
+    strength:["乐观豁达，心态超好","热爱自由，勇敢追梦","幽默风趣，人缘极佳","眼界开阔，求知欲强","真诚坦率，不记仇"],
+    weakness:["三分钟热度，缺乏定性","说话太直，容易伤人","粗心大意，丢三落四","讨厌束缚，责任感弱","有时过于理想化"],
+    like:"旅行冒险、学习新东西、交朋友、自由自在、探索未知",
+    dislike:"被束缚、繁琐细节、虚伪客套、一成不变的生活",
+    myth:"传说射手座是半人马族里最睿智的喀戎。他博学多才，是英雄们的导师，精通医术、音乐与箭术。喀戎为了解救好友普罗米修斯，甘愿献出自己的永生，宙斯感念他的牺牲，将他升上天空，成为张弓搭箭的射手，象征智慧、自由与追求。",
+    today:"今天适合计划旅行、学习新技能、开拓视野。你的好运来自“走出去”，别宅在家里。说话前稍微想想，免得无心之言伤到在乎的人。",
+    love:"单身的射手今天容易在旅途中或兴趣圈里遇见同频的人，大胆搭讪，缘分可能就在下一秒；有伴的射手适合一起计划一次小旅行，新鲜感让爱意更浓。",
+    career:"事业上有新机遇，适合拓展业务、学习进修。注意细节，别让粗心拖了后腿。",
+    wealth:"财运算中上，旅行和学习上的投资都值得，但别冲动办卡、盲目跟风。",
+    health:"精力旺盛，适合户外运动。注意膝盖和腿部，运动前记得热身。"
+  },
+  {
+    id:"capricorn", name:"摩羯座", en:"Capricorn", sym:"♑", c:"#8b95a8", elem:"土象", modal:"本位",
+    date:"12.22 - 1.19", ruler:"土星", luckNums:[8,6,4], luckColors:["棕色","灰色"], luckyFlower:"满天星",
+    luckyStone:"石榴石", luckyDir:"正北方", planet:"土星",
+    short:"沉稳攀登者，闷声干大事的奋斗王者",
+    personality:"摩羯座是十二星座里的“职场卷王”和“靠谱担当”。他们目标明确、沉稳自律，像一座沉默的山，一步步坚定地往上爬。摩羯座责任感极强，说到做到，是那种“把承诺看得比什么都重”的人。他们外表冷静克制，内心其实有浪漫和柔软的一面，只是习惯用行动而不是言语来表达。",
+    strength:["目标感强，执行力满分","沉稳靠谱，值得信赖","自律坚韧，能吃苦","责任感爆棚","理性冷静，规划力强"],
+    weakness:["过于严肃，不懂放松","工作狂，容易忽略生活","固执，不太变通","不擅表达情感","对自己和他人要求太高"],
+    like:"成就感、规划未来、踏实努力、靠谱的朋友、高效有序",
+    dislike:"浪费时间、不守承诺、花言巧语、没有上进心",
+    myth:"传说摩羯座是牧神潘的化身。在一次众神宴会中，怪物提丰来袭，众神慌乱变身逃命。潘跳入尼罗河，想变成鱼逃生，结果只变了一半——上半身是羊，下半身是鱼。宙斯觉得有趣，将他升上天空，成为摩羯座，象征坚韧、务实与在困境中求生的智慧。",
+    today:"今天适合制定计划、推进重要项目。你的努力正在被看见，别急着求结果，稳扎稳打就是最快的路。记得给自己留一点放松时间，弦绷太紧会断。",
+    love:"单身的摩羯今天适合通过长辈或朋友介绍认识靠谱对象，慢热不代表没戏；有伴的摩羯别只顾工作，抽时间陪陪对方，一句暖心的话就够。",
+    career:"事业运稳固，你的专业和负责会被认可，适合接手重要任务或申请晋升。注意团队沟通。",
+    wealth:"财运稳中有升，适合长期投资和储蓄。别太抠门，适度的社交投入有回报。",
+    health:"注意肩颈和腰部，久坐办公记得活动。规律作息，别熬夜透支。"
+  },
+  {
+    id:"aquarius", name:"水瓶座", en:"Aquarius", sym:"♒", c:"#5cc8ff", elem:"风象", modal:"固定",
+    date:"1.20 - 2.18", ruler:"天王星", luckNums:[4,8,1], luckColors:["天蓝","银色"], luckyFlower:"兰花",
+    luckyStone:"蓝晶石", luckyDir:"东南方", planet:"天王星",
+    short:"脑洞清奇，来自未来的创新使者",
+    personality:"水瓶座是十二星座里的“外星人”，思维跳脱、创意无限，永远走在时代前沿。他们理性又博爱，重视精神自由，讨厌被规则束缚。水瓶座朋友遍天下，却常常觉得自己很孤独——因为很少有人能真正走进他们天马行空的世界。他们表面淡然，内心其实温暖又善良，关心全人类，却常常忘记照顾自己。",
+    strength:["创意无限，脑洞清奇","独立自主，思想前卫","理性冷静，客观公正","博爱善良，胸怀广阔","朋友遍天下，人缘独特"],
+    weakness:["过于特立独行","感情上忽冷忽热","有点固执己见","太理性，显得冷漠","容易理想化，不接地气"],
+    like:"新奇事物、思想碰撞、自由空间、科技未来、真诚的对话",
+    dislike:"被控制、老套俗气、感情绑架、虚伪的客套",
+    myth:"传说水瓶座是特洛伊王子伽倪墨得斯，他是凡间最美的少年，被宙斯化作的雄鹰掳到奥林匹斯山，成为众神的斟酒官。他手持水瓶，为众神斟倒青春之泉。这个倒水的少年被升上天空，成为水瓶座，象征智慧、创新与自由不羁的精神。",
+    today:"今天你的创意灵感爆棚，适合头脑风暴、写方案、尝试新事物。别被别人的意见带偏，坚持你的独特。但记得对亲近的人多一点温度，理性之外也要有柔软的关心。",
+    love:"单身的水瓶今天容易在有趣的场合遇见灵魂共鸣的人，别用太飘忽的态度对待真心；有伴的水瓶多分享内心想法，对方想更懂你。",
+    career:"事业上适合创新突破，你的前瞻性想法会带来惊喜。注意落地执行，把脑洞变成现实。",
+    wealth:"财运平稳，适合学习理财知识。为兴趣花钱可以，但要量力而行。",
+    health:"注意作息规律，你容易熬夜修仙。多晒太阳、多运动，别让头脑消耗太多能量。"
+  },
+  {
+    id:"pisces", name:"双鱼座", en:"Pisces", sym:"♓", c:"#9be8e0", elem:"水象", modal:"变动",
+    date:"2.19 - 3.20", ruler:"海王星", luckNums:[7,3,9], luckColors:["海蓝","紫色"], luckyFlower:"水仙花",
+    luckyStone:"海蓝宝", luckyDir:"西南方", planet:"海王星、木星",
+    short:"浪漫梦幻，拥有柔软心肠的小天使",
+    personality:"双鱼座是十二星座里最浪漫、最富有想象力的“小天使”。他们温柔、善良、共情力爆棚，像海绵一样吸收着周围人的情绪。双鱼座天生浪漫，脑子里装满了童话和电影，艺术天赋一流。他们看似柔弱，内心却无比坚韧，能为在乎的人付出一切。唯一的功课是：学会爱自己，别把世界都扛在肩上。",
+    strength:["温柔善良，共情力满分","想象力丰富，创意十足","浪漫有艺术天赋","包容心强，善解人意","直觉敏锐，第六感超准"],
+    weakness:["太感性，容易情绪化","优柔寡断，容易逃避","太容易心软，被人利用","爱幻想，不够现实","缺乏界限感"],
+    like:"浪漫、音乐电影、发呆做梦、温柔的人、艺术创作",
+    dislike:"现实残酷、吵架冲突、冷漠的人、被逼做决定",
+    myth:"传说爱神阿佛洛狄忒和她的儿子厄洛斯（小爱神）被怪物提丰追赶，逃到河边。他们跳入河中化作两条鱼，用一条丝带把彼此连在一起，永不分离。后来这两条鱼被升上天空，成为双鱼座，象征爱与浪漫、牺牲与柔情。",
+    today:"今天你的直觉和灵感特别准，适合创作、冥想、疗愈。别太在意别人的评价，你的敏感是天赋不是负担。遇到委屈记得说出来，温柔的人也要学会保护自己。",
+    love:"单身的双鱼今天容易在文艺场合遇见心动的人，浪漫气氛拉满，但别太快陷进去；有伴的双鱼适合一起看部电影、听首歌，细腻的浪漫最动人。",
+    career:"事业上适合创意、艺术、服务类工作。你的共情力是优势，但要注意别把别人的情绪背在自己身上。",
+    wealth:"财运温和，容易为情怀和浪漫买单，记得留出生活费再剁手。",
+    health:"注意情绪和睡眠，容易想太多。多晒太阳、多接触自然，心灵充电很重要。"
+  }
+];
+
+// 星座索引
+const SIGN_MAP = {}; SIGNS.forEach((s,i)=>SIGN_MAP[s.id]=i);
+
+// 生日 → 星座
+function signFromDate(month, day){
+  const d = month*100 + day;
+  if ((d>=321&&d<=419)) return "aries";
+  if ((d>=420&&d<=520)) return "taurus";
+  if ((d>=521&&d<=621)) return "gemini";
+  if ((d>=622&&d<=722)) return "cancer";
+  if ((d>=723&&d<=822)) return "leo";
+  if ((d>=823&&d<=922)) return "virgo";
+  if ((d>=923&&d<=1023)) return "libra";
+  if ((d>=1024&&d<=1122)) return "scorpio";
+  if ((d>=1123&&d<=1221)) return "sagittarius";
+  if ((d>=1222&&d<=1231)||(d>=101&&d<=119)) return "capricorn";
+  if ((d>=120&&d<=218)) return "aquarius";
+  return "pisces";
+}
+// ============================================================
+//  工具函数
+// ============================================================
+// 基于日期 + 星座 id 的确定性随机数（每天内容会变化，但同一天内稳定）
+function seeded(seedStr){
+  let h = 1779033703 ^ seedStr.length;
+  for(let i=0;i<seedStr.length;i++){
+    h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353);
+    h = h << 13 | h >>> 19;
+  }
+  return function(){
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  };
+}
+function pick(rng, arr){ return arr[Math.floor(rng()*arr.length)]; }
+function shuffle(rng, arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function stars(n){ return "★★★★★".slice(0,n) + "☆☆☆☆☆".slice(0,5-n); }
+
+const today = new Date();
+const dateKey = today.getFullYear() + "-" + (today.getMonth()+1) + "-" + today.getDate();
+const YI = ["社交聚会","拓展人脉","主动表白","签订合同","开启新计划","学习充电","整理房间","运动健身","向长辈请教","展示才华","合作共赢","大胆尝试"];
+const JI = ["冲动消费","熬夜加班","轻信他人","与人争执","拖延怠慢","冒险投资","口无遮拦","钻牛角尖","过度承诺","冲动决策","忽视健康","想太多"];
+
+// 每日运势生成
+function dailyFortune(sign){
+  const rng = seeded(dateKey + "-" + sign.id + "-daily");
+  const base = {
+    overall: 3 + Math.floor(rng()*3),      // 3-5
+    love:    2 + Math.floor(rng()*4),      // 2-5
+    career:  3 + Math.floor(rng()*3),
+    wealth:  2 + Math.floor(rng()*4),
+    health:  3 + Math.floor(rng()*3)
+  };
+  const yi = shuffle(rng, YI).slice(0, 3);
+  const ji = shuffle(rng, JI).slice(0, 3);
+  const pickSign = shuffle(rng, SIGNS.filter(s=>s.id!==sign.id));
+  const noble = pickSign[0], foe = pickSign[1], match = pickSign[2];
+  const luckyNum = sign.luckNums[Math.floor(rng()*sign.luckNums.length)];
+  const luckyColor = pick(rng, sign.luckColors);
+  return {
+    base, yi, ji,
+    luckyNum,
+    luckyColor,
+    luckyStone: sign.luckyStone,
+    luckyDir: sign.luckyDir,
+    noble: noble.name, foe: foe.name, match: match.name,
+    text: `${sign.name}今天的整体运势${base.overall>=5?"超棒，一路绿灯":base.overall===4?"平稳向好，小确幸不断":"中规中矩，稳中求进"}！${sign.today}`,
+    love: sign.love,
+    career: sign.career,
+    wealth: sign.wealth,
+    health: sign.health
+  };
+}
+
+// 每周运势（模板 + 星座基础性格）
+const WEEK_TPL = [
+  "{s}本周的守护星能量平稳，整体节奏较为舒缓。适合放慢脚步、整理思绪，把上周遗留的问题逐一收尾。感情上会有温暖的小进展，工作上适合稳扎稳打，切忌急于求成。周末适合给自己安排一次小小的犒赏，放松是为了更好地出发。",
+  "{s}本周你会感到精力充沛、动力满满，是推进计划的好时机！事业上适合主动争取机会，感情上大胆表达心意会有惊喜。财运方面有小幅提升，但要注意理性消费。周末适合参加聚会，你的人气会直线上升。",
+  "{s}本周你需要多关注自己的内心感受，别被外界的噪音带乱节奏。工作上的压力可能稍大，但你的实力足以应对，记得寻求团队帮助。感情上多沟通少猜疑，健康上注意劳逸结合。周中之后运势逐渐走高，一切都会好起来。",
+  "{s}本周是人际关系的高光周！贵人运旺，容易得到长辈或朋友的帮助。事业上适合洽谈合作、拓展人脉，感情上有机会遇见心动的人。财运平稳，投资需谨慎。周末适合做些让自己开心的小事，保持好心情就是最好的开运方式。"
+];
+const WEEK_TIPS = [
+  {t:"💼 事业锦囊", d:"别怕主动表现，你的能力需要被看见。"},
+  {t:"❤️ 感情锦囊", d:"真诚比技巧更动人，做真实的自己。"},
+  {t:"💰 财运锦囊", d:"适度储蓄，别为面子买单。"},
+  {t:"🌿 健康锦囊", d:"早睡早起，给身体充充电。"}
+];
+
+// 每月运势
+const MONTH_TPL = [
+  "{s}本月整体运势稳中有升，月初适合制定新目标，月中迎来小高峰，月底注意收尾与复盘。事业上有望获得认可或新机会，感情上单身者桃花渐旺，有伴者感情升温。财运方面正财稳定，可考虑中长期规划。健康上注意作息规律，本月关键词是“坚持”。",
+  "{s}本月是你的能量月！事业上适合大胆出击，可能迎来升职加薪或重要合作的好消息。感情上充满浪漫气息，单身者有望脱单，有伴者适合一起规划未来。财运亮眼但忌冲动投资。本月关键词是“勇敢”，别让机会溜走。",
+  "{s}本月节奏偏平稳，适合沉淀与积累。工作上适合精进专业技能，别急于求成；感情上多一点耐心与陪伴，细水长流才是真。财运平缓，适合储蓄与学习理财。本月关键词是“修炼”，你的努力会在未来某天突然开花结果。",
+  "{s}本月你的人缘与贵人运突出，很多问题会在朋友的帮助下迎刃而解。事业上适合团队协作，感情上多参加社交活动会有意外收获。财运上有人情往来支出，但也可能获得意外之财。本月关键词是“感恩”，记得回馈那些帮助你的人。"
+];
+
+// 每日签文
+const TIPS = [
+  {t:"星光引路", txt:"今天的你正被好运眷顾，大胆迈出第一步，路会自己亮起来。", chips:["宜主动","宜微笑","忌犹豫"]},
+  {t:"锦鲤附体", txt:"幸运正在向你靠近，保持好心情，好事会在不经意间发生。", chips:["宜期待","宜感恩","忌焦虑"]},
+  {t:"静待花开", txt:"别急，所有等待都值得。你的坚持正在悄悄开花，耐心一点。", chips:["宜耐心","宜积累","忌急躁"]},
+  {t:"心有暖阳", txt:"你的温柔会被世界温柔以待，今天记得多爱自己一点点。", chips:["宜自爱","宜分享","忌内耗"]},
+  {t:"破茧成蝶", txt:"新的变化正在酝酿，勇敢告别旧模式，你会遇见更轻盈的自己。", chips:["宜改变","宜勇敢","忌固守"]},
+  {t:"贵人临门", txt:"今天容易遇到愿意帮你的人，别忘了把善意传递下去。", chips:["宜社交","宜感恩","忌独来独往"]},
+  {t:"心想事成", txt:"你惦记的事情会有好消息传来，保持信念，宇宙听见了你的心愿。", chips:["宜许愿","宜行动","忌怀疑"]},
+  {t:"元气满满", txt:"今天能量满格，适合解决拖延已久的问题，完成后的成就感超甜。", chips:["宜行动","宜整理","忌拖延"]}
+];
+
+// ============================================================
+//  兼容性计算（元素关系 + 稳定随机）
+// ============================================================
+const ELEM = {fire:["aries","leo","sagittarius"], earth:["taurus","virgo","capricorn"], air:["gemini","libra","aquarius"], water:["cancer","scorpio","pisces"]};
+function compPair(a, b){
+  if (a===b) return 0; // 自己不算
+  const rng = seeded(a + "-" + b + "-compat");
+  let base = 60;
+  const elemOf = s => ({aries:"fire",taurus:"earth",gemini:"air",cancer:"water",leo:"fire",virgo:"earth",libra:"air",scorpio:"water",sagittarius:"fire",capricorn:"earth",aquarius:"air",pisces:"water"})[s];
+  const ea = elemOf(a), eb = elemOf(b);
+  if (ea===eb) base = 85;
+  else if ((ea==="fire"&&eb==="air")||(ea==="air"&&eb==="fire")||(ea==="earth"&&eb==="water")||(ea==="water"&&eb==="earth")) base = 78;
+  else if ((ea==="fire"&&eb==="earth")||(ea==="earth"&&eb==="fire")||(ea==="air"&&eb==="water")||(ea==="water"&&eb==="air")) base = 62;
+  else base = 70;
+  const v = Math.round(base + (rng()*14-7));
+  return Math.max(42, Math.min(99, v));
+}
+
+// ============================================================
+//  渲染
+// ============================================================
+let current = "aries";
+
+function renderDeco(){
+  const deco = document.getElementById("deco");
+  // 泡泡
+  const colors = ["#ffc9e3","#d3c5ff","#bfe3ff","#ffe3c9","#c9f0e3","#ffe9f4"];
+  for (let i=0;i<14;i++){
+    const s = document.createElement("div");
+    s.className = "bubble";
+    const size = 10 + Math.random()*26;
+    s.style.cssText = `left:${Math.random()*100}%;width:${size}px;height:${size}px;background:${colors[i%colors.length]};animation-duration:${14+Math.random()*16}s;animation-delay:${-Math.random()*20}s`;
+    deco.appendChild(s);
+  }
+  // 云朵
+  const clouds = ["☁️","☁️","🌸","⭐","🌈","💫"];
+  for (let i=0;i<6;i++){
+    const c = document.createElement("div");
+    c.className = "cloud";
+    c.textContent = clouds[i];
+    c.style.cssText = `top:${5+Math.random()*80}%;left:${-10+Math.random()*95}%;font-size:${40+Math.random()*45}px;animation-delay:${-Math.random()*20}s`;
+    deco.appendChild(c);
+  }
+  // 漂浮小装饰
+  const floaters = ["💖","✨","🌟","🎀","🍭","🧸"];
+  for (let i=0;i<8;i++){
+    const f = document.createElement("div");
+    f.className = "floater";
+    f.textContent = floaters[i%floaters.length];
+    f.style.cssText = `top:${Math.random()*90}%;left:${Math.random()*96}%;font-size:${18+Math.random()*18}px;animation-delay:${-Math.random()*6}s`;
+    deco.appendChild(f);
+  }
+}
+
+function renderSigns(){
+  const grid = document.getElementById("signsGrid");
+  grid.innerHTML = SIGNS.map(s => `
+    <div class="sign-card ${s.id===current?'active':''}" style="--c:${s.c}" data-id="${s.id}">
+      <span class="sym">${s.sym}</span>
+      <div class="nm">${s.name}</div>
+      <div class="dt">${s.date}</div>
+      <span class="sc">${s.elem}</span>
+    </div>`).join("");
+  grid.querySelectorAll(".sign-card").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      current = el.dataset.id;
+      renderSigns();
+      renderDetail();
+      document.getElementById("detail").scrollIntoView({behavior:"smooth"});
+    });
+  });
+}
+
+function renderRanking(){
+  const box = document.getElementById("rankBox");
+  document.getElementById("rankDate").textContent = dateKey;
+  const list = SIGNS.map(s => ({s, f: dailyFortune(s)}))
+    .sort((a,b)=>b.f.base.overall-a.f.base.overall);
+  const medals = ["🥇","🥈","🥉"];
+  box.innerHTML = list.map((it,i)=>`
+    <div class="rank-row" style="--c:${it.s.c}" data-id="${it.s.id}">
+      <div class="no ${i<3?'t'+(i+1):''}">${i<3?medals[i]:i+1}</div>
+      <div class="rsym">${it.s.sym}</div>
+      <div>
+        <div class="rname">${it.s.name}</div>
+        <div class="rscore">综合运势 ${it.f.base.overall} 分 · 爱情 ${it.f.base.love} · 财运 ${it.f.base.wealth}</div>
+      </div>
+      <div class="rank-meters">
+        <div class="track"><div class="fill" style="width:${it.f.base.overall*20}%"></div></div>
+        <span class="star-i">★${it.f.base.overall}</span>
+      </div>
+    </div>`).join("");
+  box.querySelectorAll(".rank-row").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      current = el.dataset.id;
+      renderSigns(); renderDetail();
+      document.getElementById("detail").scrollIntoView({behavior:"smooth"});
+    });
+  });
+}
+
+function renderDetail(){
+  const sign = SIGNS[SIGN_MAP[current]];
+  const f = dailyFortune(sign);
+  const hero = document.getElementById("detailHero");
+  hero.style.setProperty("--c", sign.c);
+  hero.innerHTML = `
+    <div class="d-top">
+      <div class="d-sym">${sign.sym}</div>
+      <div class="d-info">
+        <h2>${sign.name}</h2>
+        <div class="en">${sign.en} · ${sign.elem}${sign.modal}</div>
+        <div class="d-tags">
+          <span>守护星 <b>${sign.ruler}</b></span>
+          <span>幸运数字 <b>${sign.luckNums.join(" / ")}</b></span>
+          <span>幸运色 <b>${sign.luckColors.join(" / ")}</b></span>
+        </div>
+      </div>
+      <div class="d-date">今日运势 <b>${f.base.overall} ★</b>${dateKey}</div>
+    </div>`;
+  renderToday(sign, f);
+  renderWeek(sign);
+  renderMonth(sign);
+  renderProfile(sign);
+  renderComp(sign);
+}
+
+function renderToday(sign, f){
+  const items = [
+    ["综合运势", f.base.overall, f.base.overall*20],
+    ["爱情运势", f.base.love, f.base.love*20],
+    ["事业运势", f.base.career, f.base.career*20],
+    ["财运运势", f.base.wealth, f.base.wealth*20],
+    ["健康运势", f.base.health, f.base.health*20]
+  ];
+  document.getElementById("todayGrid").innerHTML = items.map(([lab,val,pct])=>`
+    <div class="fort-card" style="--c:${sign.c}">
+      <div class="lab">${lab}</div>
+      <div class="val">${val*20}</div>
+      <div class="stars">${stars(val)}</div>
+      <div class="score">${["低迷","一般","不错","很好","超棒"][val-1]}</div>
+    </div>`).join("");
+  document.getElementById("todayText").innerHTML = `
+    <span class="lead">📝 ${sign.name}今日简评：</span><br>
+    ${f.text}<br><br>
+    <span class="tag">❤️ 爱情</span>${f.love}<br>
+    <span class="tag">💼 事业</span>${f.career}<br>
+    <span class="tag">💰 财运</span>${f.wealth}<br>
+    <span class="tag">🌿 健康</span>${f.health}`;
+  document.getElementById("todayYi").innerHTML = f.yi.map(y=>`<li><b>✔</b> ${y}</li>`).join("");
+  document.getElementById("todayJi").innerHTML = f.ji.map(j=>`<li><b>✘</b> ${j}</li>`).join("");
+  document.getElementById("luckStrip").innerHTML = `
+    <div class="luck-item"><div class="k">🔢 幸运数字</div><div class="v">${f.luckyNum}</div></div>
+    <div class="luck-item"><div class="k">🎨 幸运颜色</div><div class="v">${f.luckyColor}</div></div>
+    <div class="luck-item"><div class="k">💎 幸运水晶</div><div class="v">${f.luckyStone}</div></div>
+    <div class="luck-item"><div class="k">🧭 幸运方位</div><div class="v">${f.luckyDir}</div></div>
+    <div class="luck-item"><div class="k">🤝 贵人星座</div><div class="v">${f.noble}</div></div>
+    <div class="luck-item"><div class="k">💘 速配星座</div><div class="v">${f.match}</div></div>
+    <div class="luck-item"><div class="k">⚠️ 提防星座</div><div class="v">${f.foe}</div></div>`;
+}
+
+function renderWeek(sign){
+  const rng = seeded(dateKey + "-" + sign.id + "-week");
+  const tpl = WEEK_TPL[Math.floor(rng()*WEEK_TPL.length)].replace("{s}", sign.name);
+  document.getElementById("weekText").innerHTML = tpl;
+  document.getElementById("weekTips").innerHTML = WEEK_TIPS.map(t=>`
+    <div class="tip-box"><div class="t">${t.t}</div><div class="d">${t.d}</div></div>`).join("");
+}
+
+function renderMonth(sign){
+  const rng = seeded(dateKey + "-" + sign.id + "-month");
+  const tpl = MONTH_TPL[Math.floor(rng()*MONTH_TPL.length)].replace("{s}", sign.name);
+  document.getElementById("monthText").innerHTML = tpl;
+  document.getElementById("monthTips").innerHTML = `
+    <div class="tip-box"><div class="t">🎯 本月关键词</div><div class="d">${sign.modal}${sign.elem}，稳中求进，把握贵人运</div></div>
+    <div class="tip-box"><div class="t">⭐ 本月吉日</div><div class="d">逢 3、6、9 的日子更顺利</div></div>
+    <div class="tip-box"><div class="t">🎨 开运穿搭</div><div class="d">${sign.luckColors.join("、")}色系助你能量满满</div></div>`;
+}
+
+function renderProfile(sign){
+  document.getElementById("pfPersonality").textContent = sign.personality;
+  document.getElementById("pfStrength").innerHTML = sign.strength.map(x=>`<li>${x}</li>`).join("");
+  document.getElementById("pfWeakness").innerHTML = sign.weakness.map(x=>`<li>${x}</li>`).join("");
+  document.getElementById("pfLike").innerHTML = `<b>❤️ 喜欢：</b>${sign.like}`;
+  document.getElementById("pfDislike").innerHTML = `<b>😖 讨厌：</b>${sign.dislike}`;
+  document.getElementById("pfMyth").textContent = sign.myth;
+  document.getElementById("pfInfo").innerHTML = `
+    <tr><td>英文名</td><td>${sign.en}</td></tr>
+    <tr><td>日期范围</td><td>${sign.date}</td></tr>
+    <tr><td>星座属性</td><td>${sign.elem} · ${sign.modal}星座</td></tr>
+    <tr><td>守护星</td><td>${sign.planet}</td></tr>
+    <tr><td>幸运数字</td><td>${sign.luckNums.join("、")}</td></tr>
+    <tr><td>幸运颜色</td><td>${sign.luckColors.join("、")}</td></tr>
+    <tr><td>幸运花</td><td>${sign.luckyFlower}</td></tr>
+    <tr><td>幸运石</td><td>${sign.luckyStone}</td></tr>
+    <tr><td>幸运方位</td><td>${sign.luckyDir}</td></tr>
+    <tr><td>一句话</td><td><b>${sign.short}</b></td></tr>`;
+}
+
+function renderComp(sign){
+  const intro = document.getElementById("compIntro");
+  const pairs = SIGNS.filter(s=>s.id!==sign.id).map(s=>({
+    s, score: compPair(sign.id, s.id)
+  })).sort((a,b)=>b.score-a.score);
+  intro.innerHTML = `<span class="hs">${sign.sym}</span><span class="heart">💗</span><span style="font-size:15px;font-weight:700;color:var(--text)">${sign.name}与其他星座的配对指数</span>`;
+  document.getElementById("compGrid").innerHTML = pairs.map(p=>`
+    <div class="comp-item" style="--c2:${p.s.c}" data-id="${p.s.id}">
+      <div class="top">
+        <span class="cs">${p.s.sym}</span>
+        <div><div class="cn">${p.s.name}</div><div class="cp">${p.s.elem} · ${p.s.date}</div></div>
+        <div class="pct">${p.score}%</div>
+      </div>
+      <div class="track"><div class="fill" style="width:${p.score}%"></div></div>
+    </div>`).join("");
+  const best = pairs.slice(0,3), worst = pairs.slice(-2);
+  document.getElementById("bestPick").innerHTML = `
+    <span style="font-size:24px">🌟</span>
+    <div><b>最佳配对：</b>${best.map(b=>b.s.name).join("、")}（${best[0].score}%）&nbsp;·&nbsp;
+    <b>需要磨合：</b>${worst.map(w=>w.s.name).join("、")}</div>
+    <span style="font-size:24px">💫</span>`;
+  document.querySelectorAll("#compGrid .comp-item").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      current = el.dataset.id;
+      renderSigns(); renderDetail();
+      document.getElementById("detail").scrollIntoView({behavior:"smooth"});
+    });
+  });
+}
+
+// 每日签文
+function drawTip(){
+  const rng = seeded(dateKey + "-" + (Math.floor(Math.random()*1000)) + "-tip");
+  const tip = TIPS[Math.floor(rng()*TIPS.length)];
+  document.getElementById("tipTitle").textContent = "「 " + tip.t + " 」";
+  document.getElementById("tipText").textContent = tip.txt;
+  document.getElementById("tipChips").innerHTML = tip.chips.map(c=>`<span>${c}</span>`).join("");
+}
+
+// ============================================================
+//  事件绑定
+// ============================================================
+// Tabs
+document.querySelectorAll(".tab").forEach(tab=>{
+  tab.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("on"));
+    document.querySelectorAll(".tabpane").forEach(p=>p.classList.remove("on"));
+    tab.classList.add("on");
+    document.getElementById("pane-" + tab.dataset.tab).classList.add("on");
+  });
+});
+
+// 生日测星座
+document.getElementById("findBtn").addEventListener("click", ()=>{
+  const v = document.getElementById("birthInput").value;
+  const res = document.getElementById("finderResult");
+  if (!v){ res.innerHTML = "💦 先选择你的生日日期哦～"; return; }
+  const d = new Date(v);
+  const id = signFromDate(d.getMonth()+1, d.getDate());
+  const sign = SIGNS[SIGN_MAP[id]];
+  res.innerHTML = `🎉 你的星座是 <b>${sign.sym} ${sign.name}</b>（${sign.date}）${sign.elem} · ${sign.short} 💖`;
+  current = id;
+  renderSigns(); renderDetail();
+  document.getElementById("detail").scrollIntoView({behavior:"smooth"});
+});
+// 回车也可触发
+document.getElementById("birthInput").addEventListener("keydown", e=>{ if(e.key==="Enter") document.getElementById("findBtn").click(); });
+
+// 换签
+document.getElementById("drawBtn").addEventListener("click", ()=>{
+  const rng = seeded(Date.now().toString());
+  const tip = TIPS[Math.floor(rng()*TIPS.length)];
+  document.getElementById("tipTitle").textContent = "「 " + tip.t + " 」";
+  document.getElementById("tipText").textContent = tip.txt;
+  document.getElementById("tipChips").innerHTML = tip.chips.map(c=>`<span>${c}</span>`).join("");
+});
+
+// ============================================================
+//  启动
+// ============================================================
+renderDeco();
+renderSigns();
+renderRanking();
+renderDetail();
+drawTip();
+</script>
+</body>
+</html>
